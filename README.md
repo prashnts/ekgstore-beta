@@ -59,8 +59,15 @@ elements = [...]
 ```
 
 ### Resources
+### Module Specific
+- Inkscape commandline reference: https://inkscape.org/en/doc/inkscape-man.html
+- PyQuery API reference: http://pyquery.readthedocs.io/en/latest/api.html
+- CSS Selectors syntax guide: https://api.jquery.com/category/selectors/
+- Attribute Selectors guide: https://developer.mozilla.org/en/docs/Web/CSS/Attribute_selectors
+- Comprehensions: http://python-3-patterns-idioms-test.readthedocs.io/en/latest/Comprehensions.html
+
+### General
 - PEP 8 reference: https://www.python.org/dev/peps/pep-0008/
 - Python 3 docs: https://docs.python.org/3/
 - Python 2 and Python 3 differences: https://wiki.python.org/moin/Python2orPython3
-- Inkscape commandline reference: https://inkscape.org/en/doc/inkscape-man.html
 - Python 3 tutorials: http://docs.python-guide.org/en/latest/
