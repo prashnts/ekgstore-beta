@@ -30,6 +30,7 @@ Please ensure you create your new feature branch for any changes you make in cod
 We try to closely follow PEP8 coding guidelines with following exceptions:
 - Indentation is strictly 2-space. Please do not use `tabs` or 4-space indents.
 - Single letter, or nondescriptive variable names are prohibited unless they are used within loops, comprehensions, or lambda functions.
+- Lines can be up to 120 characters long. Anything longer than that, you should immediately consider refactoring.
 - Long functional chains are allowed, but each atomic call must be in a separate line with double hanging indent. Example:
 ```python
 # Good
@@ -58,6 +59,7 @@ elements = [...]
 ```
 
 ### Resources
+- PEP 8 reference: https://www.python.org/dev/peps/pep-0008/
 - Python 3 docs: https://docs.python.org/3/
 - Python 2 and Python 3 differences: https://wiki.python.org/moin/Python2orPython3
 - Inkscape commandline reference: https://inkscape.org/en/doc/inkscape-man.html
