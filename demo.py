@@ -16,11 +16,11 @@ if __name__ == '__main__':
   waves, units = parse.get_waves()
   x_unit, y_unit = units
 
-  for i, wave in enumerate(waves):
-    plt.plot(waves[wave])
+  for i, wave in waves:
+    plt.plot(wave)
     plt.ylim(-6 * y_unit, 6 * y_unit)
-    plt.xlim(0, len(waves[wave]))
-    plt.xticks(np.arange(0, len(waves[wave]) + 1, x_unit))
+    plt.xlim(0, len(wave))
+    plt.xticks(np.arange(0, len(wave) + 1, x_unit))
     plt.yticks(np.arange(-6 * y_unit, 6 * y_unit, y_unit))
     plt.tick_params(
         axis='both',
@@ -31,6 +31,7 @@ if __name__ == '__main__':
         right='off',
         left='off',
         labelleft='off')
-    plt.suptitle(wave, fontsize=16)
+    plt.suptitle(i, fontsize=16)
     plt.grid()
     plt.show()
+    break
