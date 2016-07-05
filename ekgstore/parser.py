@@ -10,6 +10,7 @@ For easier XML parsing, we strip away the namespace declaration from
 SVG, hence should need be to export, namespace must be appended.
 """
 import os
+import re
 import subprocess
 import numpy as np
 
@@ -63,10 +64,16 @@ class Parser(object):
 
   def _strip_elements_(self):
     """Remove unnecessary path elements"""
-    stroke = 'stroke-width:15'
-    # Remove all the paths that aren't having `stroke` same as above.
+    # Remove svg definitions from the tree
     (self.svg
-        .find('path:not(path[style*="{0}"])'.format(stroke))
+        .find('defs')
+        .remove())
+
+    # Remove paths which are composed of straight lines
+    path_pattern = r'm -?\d+,-?\d+ (-?\d+,0 ?|0,-?\d+ ?)+z?$'
+    (self.svg
+        .find('path')
+        .filter(lambda: re.match(path_pattern, pq(this).attr('d')) is not None)
         .remove())
     # Remove all groups without any children nodes.
     (self.svg
