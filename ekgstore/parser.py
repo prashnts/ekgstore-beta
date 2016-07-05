@@ -12,6 +12,7 @@ SVG, hence should need be to export, namespace must be appended.
 import os
 import re
 import subprocess
+import pandas as pd
 import numpy as np
 
 from pyquery import PyQuery as pq
@@ -71,7 +72,7 @@ class Parser(object):
         .remove())
 
     # Remove paths which are composed of straight lines
-    path_pattern = r'm -?\d+,-?\d+ (-?\d+,0 ?|0,-?\d+ ?)+z?$'
+    path_pattern = r'm -?[\d\.]+,-?[\d\.]+ (-?[\d\.]+,0 ?|0,-?[\d\.]+ ?)+z?$'
     (self.svg
         .find('path')
         .filter(lambda: re.match(path_pattern, pq(this).attr('d')) is not None)
@@ -81,13 +82,22 @@ class Parser(object):
         .find('g:empty')
         .remove())
 
-  def _path_as_waveform_(self, path):
+  def _path_as_waveform_(self, path, offset=None):
     """Parse SVG path to coordinates"""
     # This parses the SVG path
     assert path[0] is 'm'
     path = path[2:]
     steps = [list(map(float, _.split(','))) for _ in path.split(' ')]
-    steps_pair = [[0.0] + list(_)[1:] for _ in zip(*steps)]
+    steps_pair = list(map(list, zip(*steps)))
+
+    # Set X offset as zero, since it doesn't carry any extra meaning here.
+    steps_pair[0][0] = 0
+
+    if offset is not None:
+      delta = steps_pair[1][0] - offset
+      steps_pair[1][0] = delta[np.abs(delta).argsort()[0]]
+    else:
+      steps_pair[1][0] = 0
     return [np.cumsum(_) for _ in steps_pair]
 
   def _get_units_(self, unit_marker):
@@ -96,11 +106,18 @@ class Parser(object):
     arr_range = lambda x: x.max() - x.min()
     x_steps, y_steps = self._path_as_waveform_(unit_marker)
 
-    x_unit = arr_range(x_steps) / len(x_steps)
+    x_unit = arr_range(x_steps) / 5
     x_unit = len(x_steps)
     # Two blocks
     y_unit = arr_range(y_steps) / 2
     return x_unit, y_unit
+
+  def _get_offsets_(self, unit_marker):
+    pattern = r'm -?[\d\.]+,(-?[\d\.]+)'
+    return np.array((unit_marker
+        .map(lambda: int(re.match(
+            pattern,
+            pq(this).attr('d')).groups()[0]))))
 
   def get_waves(self):
     """Find waveforms in the SVG"""
@@ -126,13 +143,34 @@ class Parser(object):
     node_repr = lambda x: pq(x).__repr__()
     waveform_repr = waveform_els.map(lambda: node_repr(this))
     wave_paths = waveform_els.map(lambda: pq(this).attr('d'))
-    unit_marker = (self.svg
+    unit_markers = (self.svg
         .find('path')
-        .filter(lambda: node_repr(this) not in waveform_repr)
-        .attr('d'))
+        .filter(lambda: node_repr(this) not in waveform_repr))
+    unit_marker = unit_markers.attr('d')
+
+    offset = self._get_offsets_(unit_markers)
     labels = text_anchor_els.map(lambda: pq(this).text())
-    waveform = [self._path_as_waveform_(x)[1] for x in wave_paths]
-    return dict(zip(labels, waveform)), self._get_units_(unit_marker)
+    waveform = [self._path_as_waveform_(x, offset)[1] for x in wave_paths]
+    return list(zip(labels, waveform)), self._get_units_(unit_marker)
+
+  def export(self):
+    waves, units = self.get_waves()
+    x_unit, y_unit = units
+    rows = []
+    for label, waveform in waves:
+      for x, y in enumerate(waveform):
+        x_scaled = x          # TODO
+        y_scaled = y / y_unit
+        rows.append([label, x, y, x_scaled, y_scaled])
+
+    columns = ('lead', 'absoluteX', 'absoluteY', 'actual_X', 'actual_Y')
+    df = pd.DataFrame(rows, columns=columns)
+    return df
+
+  @classmethod
+  def process(cls, flname):
+    obj = cls(flname)
+    return obj.export()
 
 
 __all__ = ('Parser',)
