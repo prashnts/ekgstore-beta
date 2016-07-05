@@ -40,12 +40,13 @@ class Parser(object):
     """Convert PDF to SVG"""
     svg_fl_name = '{0}.svg'.format(self._fl_loc)
     try:
-      subprocess.check_output([
-        'inkscape',
-        '--file={0}'.format(self._fl_loc),
-        '--export-plain-svg={0}'.format(svg_fl_name),
-        '--without-gui',
-      ])
+      if not os.path.exists(svg_fl_name):
+        subprocess.check_output([
+          'inkscape',
+          '--file={0}'.format(self._fl_loc),
+          '--export-plain-svg={0}'.format(svg_fl_name),
+          '--without-gui',
+        ])
     except FileNotFoundError:
       raise RuntimeError('`inkscape` binary is required.')
     except subprocess.CalledProcessError:
