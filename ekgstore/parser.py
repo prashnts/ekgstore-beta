@@ -106,10 +106,11 @@ class Parser(object):
     arr_range = lambda x: x.max() - x.min()
     x_steps, y_steps = self._path_as_waveform_(unit_marker)
 
-    x_unit = arr_range(x_steps) / 5
-    x_unit = len(x_steps)
+    x_sz = len(x_steps)
+    x_unit = 5 / (x_sz * 25)
     # Two blocks
-    y_unit = arr_range(y_steps) / 2
+    y_sz = arr_range(y_steps)
+    y_unit = 10 / y_sz
     return x_unit, y_unit
 
   def _get_offsets_(self, unit_marker):
@@ -159,8 +160,8 @@ class Parser(object):
     rows = []
     for label, waveform in waves:
       for x, y in enumerate(waveform):
-        x_scaled = x          # TODO
-        y_scaled = y / y_unit
+        x_scaled = x * x_unit
+        y_scaled = y * y_unit
         rows.append([label, x, y, x_scaled, y_scaled])
 
     columns = ('lead', 'absoluteX', 'absoluteY', 'actual_X', 'actual_Y')
