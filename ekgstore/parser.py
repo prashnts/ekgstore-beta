@@ -9,6 +9,7 @@ See ekgstore.Parser.
 For easier XML parsing, we strip away the namespace declaration from
 SVG, hence should need be to export, namespace must be appended.
 """
+from __future__ import division
 import os
 import re
 import subprocess
@@ -48,7 +49,7 @@ class Parser(object):
           '--export-plain-svg={0}'.format(svg_fl_name),
           '--without-gui',
         ])
-    except FileNotFoundError:
+    except EnvironmentError:
       raise RuntimeError('`inkscape` binary is required.')
     except subprocess.CalledProcessError:
       raise RuntimeError('Cannot convert the provided file to SVG.')
