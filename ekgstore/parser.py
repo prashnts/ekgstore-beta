@@ -58,21 +58,8 @@ class Parser(object):
       with open(svg_fl_name, 'r') as fl:
         self._svg = pq(fl.read().encode())
         self._svg.remove_namespaces()
+        self._strip_elements_()
 
-  @property
-  def svg(self):
-    """Memoized access to SVG XML tree"""
-    if not hasattr(self, '_svg'):
-      self.__mk_svg__()
-    return self._svg
-
-  @classmethod
-  def process(cls, flname):
-    obj = cls(flname)
-    return obj.export()
-
-
-class Waveform(Parser):
   def _strip_elements_(self):
     """Remove unnecessary path elements"""
     # Remove svg definitions from the tree
@@ -91,6 +78,20 @@ class Waveform(Parser):
         .find('g:empty')
         .remove())
 
+  @property
+  def svg(self):
+    """Memoized access to SVG XML tree"""
+    if not hasattr(self, '_svg'):
+      self.__mk_svg__()
+    return self._svg
+
+  @classmethod
+  def process(cls, flname):
+    obj = cls(flname)
+    return obj.export()
+
+
+class Waveform(Parser):
   def _path_as_waveform_(self, path, offset=None):
     """Parse SVG path to coordinates"""
     # This parses the SVG path
@@ -130,7 +131,6 @@ class Waveform(Parser):
 
   def get_waves(self):
     """Find waveforms in the SVG"""
-    self._strip_elements_()
     # we want to look at waves that also have the annotations
     text_anchor_els = (self.svg
         .find('path')
@@ -176,6 +176,21 @@ class Waveform(Parser):
     df = pd.DataFrame(rows, columns=columns)
     return df
 
+
+class Metadata(Parser):
+  def get_text_nodes(self):
+    def node_transform(el):
+      transform_mat = ast.literal_eval(el.attr('transform')[6:])
+      x, y = list(transform_mat)[4:]
+      text_content = el.text()
+      return [x, y, text_content]
+
+    return list(map(node_transform, (self.svg
+        .find('text')
+        .items())))
+
+  def export(self):
+    pass
 
 
 __all__ = ('Parser', 'Waveform')
