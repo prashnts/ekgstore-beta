@@ -12,6 +12,7 @@ SVG, hence should need be to export, namespace must be appended.
 from __future__ import division
 import os
 import re
+import ast
 import subprocess
 import pandas as pd
 import numpy as np
@@ -65,6 +66,13 @@ class Parser(object):
       self.__mk_svg__()
     return self._svg
 
+  @classmethod
+  def process(cls, flname):
+    obj = cls(flname)
+    return obj.export()
+
+
+class Waveform(Parser):
   def _strip_elements_(self):
     """Remove unnecessary path elements"""
     # Remove svg definitions from the tree
@@ -91,15 +99,14 @@ class Parser(object):
     steps = [list(map(float, _.split(','))) for _ in path.split(' ')]
     steps_pair = list(map(list, zip(*steps)))
 
-    # Set X offset as zero, since it doesn't carry any extra meaning here.
-    steps_pair[0][0] = 0
+    for i in range(2):
+      if offset is not None:
+        delta = steps_pair[i][0] - offset[:,i]
+        steps_pair[i][0] = delta[np.abs(delta).argsort()[0]]
+      else:
+        steps_pair[i][0] = 0
 
-    if offset is not None:
-      delta = steps_pair[1][0] - offset
-      steps_pair[1][0] = delta[np.abs(delta).argsort()[0]]
-    else:
-      steps_pair[1][0] = 0
-    return [np.cumsum(_) for _ in steps_pair]
+    return [np.cumsum(x) for x in steps_pair]
 
   def _get_units_(self, unit_marker):
     """Infer x and y axis units from the marker"""
@@ -108,18 +115,18 @@ class Parser(object):
     x_steps, y_steps = self._path_as_waveform_(unit_marker)
 
     x_sz = len(x_steps)
-    x_unit = 5 / (x_sz * 25)
+    x_unit = 1 / (x_sz * 25)
     # Two blocks
     y_sz = arr_range(y_steps)
     y_unit = 10 / y_sz
     return x_unit, y_unit
 
   def _get_offsets_(self, unit_marker):
-    pattern = r'm -?[\d\.]+,(-?[\d\.]+)'
-    return np.array((unit_marker
-        .map(lambda: int(re.match(
-            pattern,
-            pq(this).attr('d')).groups()[0]))))
+    pattern = r'm (-?[\d\.]+,-?[\d\.]+)'
+    markers = (unit_marker
+        .map(lambda: re.match(pattern, pq(this).attr('d')).groups()[0]))
+
+    return np.array(list(map(ast.literal_eval, markers)))
 
   def get_waves(self):
     """Find waveforms in the SVG"""
@@ -152,7 +159,7 @@ class Parser(object):
 
     offset = self._get_offsets_(unit_markers)
     labels = text_anchor_els.map(lambda: pq(this).text())
-    waveform = [self._path_as_waveform_(x, offset)[1] for x in wave_paths]
+    waveform = [self._path_as_waveform_(x, offset) for x in wave_paths]
     return list(zip(labels, waveform)), self._get_units_(unit_marker)
 
   def export(self):
@@ -160,7 +167,7 @@ class Parser(object):
     x_unit, y_unit = units
     rows = []
     for label, waveform in waves:
-      for x, y in enumerate(waveform):
+      for x, y in zip(*waveform):
         x_scaled = x * x_unit
         y_scaled = y * y_unit
         rows.append([label, x, y, x_scaled, y_scaled])
@@ -169,10 +176,6 @@ class Parser(object):
     df = pd.DataFrame(rows, columns=columns)
     return df
 
-  @classmethod
-  def process(cls, flname):
-    obj = cls(flname)
-    return obj.export()
 
 
-__all__ = ('Parser',)
+__all__ = ('Parser', 'Waveform')

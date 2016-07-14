@@ -3,7 +3,7 @@ import numpy as np
 
 from matplotlib import pyplot as plt
 
-from ekgstore import Parser
+from ekgstore import Parser, Waveform
 
 
 if __name__ == '__main__':
@@ -12,14 +12,14 @@ if __name__ == '__main__':
   else:
     flname = 'dat/sample1.pdf'
 
-  parse = Parser(flname)
+  parse = Waveform(flname)
   waves, units = parse.get_waves()
   x_unit, y_unit = units
 
-  for i, wave in waves:
-    plt.plot(wave * y_unit)
-    plt.ylim(-20, 20)
-    plt.xlim(0, len(wave))
-    plt.suptitle(i, fontsize=16)
-    plt.show()
-    break
+  # for i, wave in waves:
+  #   plt.plot(wave * y_unit)
+  #   plt.ylim(-20, 20)
+  #   plt.xlim(0, len(wave))
+  #   plt.suptitle(i, fontsize=16)
+  #   plt.show()
+  #   break
