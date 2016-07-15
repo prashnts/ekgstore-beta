@@ -58,7 +58,7 @@ element_list = [...]
 elements = [...]
 ```
 
-### Resources
+## Resources
 ### Module Specific
 - Inkscape commandline reference: https://inkscape.org/en/doc/inkscape-man.html
 - PyQuery API reference: http://pyquery.readthedocs.io/en/latest/api.html
