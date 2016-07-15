@@ -20,6 +20,10 @@ def process_pdf(file_name, output_dir, *arg, **kwa):
 @click.argument('in_dir', type=click.Path(exists=True))
 @click.argument('out_dir', type=click.Path())
 def ekg_routine(in_dir, out_dir):
+  """EKG Store
+
+  Parses and extracts metadata and waveforms from the EKG PDF data files.
+  """
   input_dir = os.path.abspath(in_dir)
   output_dir = os.path.abspath(out_dir)
   pdfs = glob.glob('{0}/*.pdf'.format(input_dir))
