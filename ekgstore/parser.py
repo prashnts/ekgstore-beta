@@ -314,7 +314,7 @@ def process_stack(file_name, out_path):
 
   logger.info('----> Writing Metadata as JSON')
   with open('{0}/{1}.json'.format(out_path, outfl), 'w') as fl:
-    json.dump(meta, fl, indent=2, encoding='utf-8')
+    json.dump(meta, fl, indent=2)
 
 
 __all__ = ('Waveform', 'Metadata', 'process_stack')
