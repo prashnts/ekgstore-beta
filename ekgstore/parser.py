@@ -296,4 +296,4 @@ class Metadata(Parser):
     return self.infer_text()
 
 
-__all__ = ('Parser', 'Waveform')
+__all__ = ('Waveform', 'Metadata')

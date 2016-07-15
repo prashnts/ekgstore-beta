@@ -1,4 +1,4 @@
 # EKGStore
-from ekgstore.parser import Parser, Waveform
+from ekgstore.parser import Waveform, Metadata
 
-__all__ = ('Parser', 'Waveform')
+__all__ = ('Waveform', 'Metadata')
