@@ -14,6 +14,7 @@ import os
 import re
 import ast
 import subprocess
+import hashlib
 import pandas as pd
 import numpy as np
 
@@ -43,13 +44,14 @@ class Parser(object):
 
   def __mk_svg__(self):
     """Convert PDF to SVG"""
-    svg_fl_name = '{0}.svg'.format(self._fl_loc)
+    svg_hash = hashlib.md5(self._fl_loc.encode()).hexdigest()
+    svg_file = '/tmp/{0}.svg'.format(svg_hash)
     try:
-      if not os.path.exists(svg_fl_name):
+      if not os.path.exists(svg_file):
         subprocess.check_output([
           'inkscape',
           '--file={0}'.format(self._fl_loc),
-          '--export-plain-svg={0}'.format(svg_fl_name),
+          '--export-plain-svg={0}'.format(svg_file),
           '--without-gui',
         ])
     except EnvironmentError:
@@ -57,7 +59,7 @@ class Parser(object):
     except subprocess.CalledProcessError:
       raise RuntimeError('Cannot convert the provided file to SVG.')
     else:
-      with open(svg_fl_name, 'r') as fl:
+      with open(svg_file, 'r') as fl:
         self._svg = pq(fl.read().encode())
         self._svg.remove_namespaces()
         self._strip_elements_()
