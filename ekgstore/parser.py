@@ -17,6 +17,8 @@ import subprocess
 import pandas as pd
 import numpy as np
 
+import contextlib
+
 from pyquery import PyQuery as pq
 
 
@@ -177,20 +179,121 @@ class Waveform(Parser):
     return df
 
 
+@contextlib.contextmanager
+def supress(*exceptions):
+  try:
+    yield
+  except exceptions:
+    pass
+
+
 class Metadata(Parser):
   def get_text_nodes(self):
     def node_transform(el):
-      transform_mat = ast.literal_eval(el.attr('transform')[6:])
-      x, y = list(transform_mat)[4:]
+      try:
+        transform_mat = ast.literal_eval(el.attr('transform')[6:])
+        x, y = list(transform_mat)[4:]
+      except (ValueError, SyntaxError):
+        x, y = 0, 0
       text_content = el.text()
-      return [x, y, text_content]
+      return [x // 100, y // 100, text_content]
 
-    return list(map(node_transform, (self.svg
+    nodes_paired = list(map(node_transform, (self.svg
         .find('text')
         .items())))
 
+    return pd.DataFrame(nodes_paired, columns=['x', 'y', 'text'])
+
+  def infer_text(self):
+    text_nodes = self.get_text_nodes()
+    meta = {}
+
+    # XXX: This section is pretty much a hack, and may not be robust.
+    top_row = (text_nodes
+        .query('y == 204')
+        .sort_values('x')
+        .text
+        .values)
+
+    with supress(IndexError):
+      meta['Name'] = top_row[0]
+      meta['ID'] = top_row[1].split(':')[1]
+      meta['Date'] = top_row[2]
+
+    with supress(IndexError):
+      meta['Sex'] = (text_nodes
+          .query('x == 4 and y == 194')
+          .text
+          .values[0])
+    with supress(IndexError):
+      meta['Ethnicity'] = (text_nodes
+          .query('x == 19 and y == 194')
+          .text
+          .values[0])
+    with supress(IndexError):
+      meta['Weight'] = (text_nodes
+          .query('x == 19 and y == 191')
+          .text
+          .values[0])
+    with supress(IndexError):
+      meta['Height'] = (text_nodes
+          .query('x == 4 and y == 191')
+          .text
+          .values[0])
+
+    meta['Remarks'] = '\n'.join((text_nodes
+        .query('x == 119')
+        .text
+        .values[:-1]))
+
+    eeg_report_keys = text_nodes.query('x == 54')
+    for row in eeg_report_keys.values:
+      y_coor = row[1]
+      rvalues = (text_nodes
+          .query('y == {0} and 50 < x < 110'.format(y_coor))
+          .sort_values('x')
+          .text
+          .values)
+      key = rvalues[0]
+      value = ' '.join(rvalues[1:])
+      meta[key] = value
+
+    bottom_row = (text_nodes
+        .query('y == 11')
+        .sort_values('x')
+        .text
+        .values)
+
+    with supress(IndexError):
+      meta['Scale_x'] = bottom_row[0]
+      meta['Scale_y'] = bottom_row[1]
+      meta['Signal'] = bottom_row[2]
+
+    split_and_strip = lambda x: [y.strip() for y in x.split(':')]
+    meta.update(dict(map(split_and_strip, (text_nodes
+        .query('y == 162')
+        .sort_values('x')
+        .text
+        .values))))
+
+    meta.update(dict(map(split_and_strip, (text_nodes
+        .query('x == 4 and 100 < y < 190')
+        .sort_values('y', ascending=False)
+        .text
+        .values))))
+
+    meta.update(dict(map(split_and_strip, (text_nodes
+        .query('x == 32')
+        .sort_values('y', ascending=False)
+        .text
+        .values))))
+
+    normalise_key = lambda x: re.sub(r'[^\w\d\s\-_\\]+', '', x)
+    normal_meta = {normalise_key(k): v for k, v in meta.items()}
+    return normal_meta
+
   def export(self):
-    pass
+    return self.infer_text()
 
 
 __all__ = ('Parser', 'Waveform')
