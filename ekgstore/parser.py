@@ -307,7 +307,7 @@ def process_stack(file_name, out_path):
   logger.info('----> Extracting Header Metadata')
   meta = Metadata.process(file_name)
 
-  outfl = os.path.basename(file_name)[:-3]
+  outfl = os.path.basename(file_name)[:-4]
 
   csv.to_csv('{0}/{1}.csv'.format(out_path, outfl), index=False)
   logger.info('----> Writing Waveform as CSV')
