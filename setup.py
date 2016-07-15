@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
   name='ekgstore',
-  version='0.2.1',
+  version='0.2.2',
   packages=['ekgstore'],
   install_requires=[
     'pyquery',
