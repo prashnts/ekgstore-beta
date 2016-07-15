@@ -13,6 +13,7 @@ from __future__ import division
 import os
 import re
 import ast
+import json
 import subprocess
 import hashlib
 import pandas as pd
@@ -21,6 +22,8 @@ import numpy as np
 import contextlib
 
 from pyquery import PyQuery as pq
+
+from ekgstore.logger import logger
 
 
 class Parser(object):
@@ -298,4 +301,21 @@ class Metadata(Parser):
     return self.infer_text()
 
 
-__all__ = ('Waveform', 'Metadata')
+def process_stack(file_name, out_path):
+  logger.info('----> Extracting Waveforms')
+  csv = Waveform.process(file_name)
+  logger.info('----> Extracting Header Metadata')
+  meta = Metadata.process(file_name)
+
+  assert 'ID' in meta
+  oid = meta['ID']
+
+  csv.to_csv('{0}/{1}.csv'.format(out_path, oid), index=False)
+  logger.info('----> Writing Waveform as CSV')
+
+  logger.info('----> Writing Metadata as JSON')
+  with open('{0}/{1}.json'.format(out_path, oid), 'w') as fl:
+    json.dump(meta, fl, indent=2, encoding='utf-8')
+
+
+__all__ = ('Waveform', 'Metadata', 'process_stack')
