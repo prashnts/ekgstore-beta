@@ -13,10 +13,6 @@ def process_pdf(file_name, output_dir, *arg, **kwa):
     process_stack(file_name, output_dir)
     logger.info('----> Done')
     return True
-  except AssertionError:
-    logger.error('----> Fail: Assertion Error')
-  except RuntimeError:
-    logger.error('----> Fail: Runtime Error')
   except Exception as e:
     logger.error('----> Fail: ' + str(e))
 
