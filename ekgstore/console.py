@@ -52,7 +52,7 @@ def ekg_routine(in_dir, out_dir):
       success += 1
     else:
       fail += 1
-    if (files_processed % 2 == 0):
+    if (files_processed % 100 == 0):
       print ('---> {0}/{1} files processed.'.format(files_processed, total_files_to_process))
       logger.info('---> {0}/{1} files processed.'.format(files_processed, total_files_to_process))
 
