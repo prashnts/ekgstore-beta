@@ -9,15 +9,16 @@ class InfoLevelFilter(logging.Filter):
   def filter(self, record):
     return record.levelno == logging.INFO
 
+class ErrorLevelFilter(logging.Filter):
+  def filter(self, record):
+    return record.levelno == logging.ERROR
+
 
 file_log_format = logging.Formatter(
   "%(asctime)s - %(levelname)-8s%(module)s.%(funcName)s:%(lineno)d %(message)s",
   "%Y-%m-%d %H:%M:%S"
 )
-console_log_format = logging.Formatter(
-  "%(asctime)s %(message)s",
-  "%H:%M:%S"
-)
+console_log_format = logging.Formatter("%(message)s")
 
 console_handle = StreamHandler()
 console_handle.setFormatter(console_log_format)
@@ -30,13 +31,21 @@ file_handle = FileHandler(file_log_name)
 file_handle.setFormatter(file_log_format)
 file_handle.setLevel(logging.DEBUG)
 
-summary_log_name = '{0}/EKG_Run_Summary_{1}.log'.format(os.getcwd(), dtformat)
+summary_log_name = '{0}/EKG_Run_Summary.txt'.format(os.getcwd())
 summary_log_handle = FileHandler(summary_log_name)
-summary_log_handle.setFormatter(file_log_format)
+summary_log_handle.setFormatter(console_log_format)
 summary_log_handle.setLevel(logging.INFO)
+summary_log_handle.addFilter(InfoLevelFilter())
+
+error_log_name = '{0}/EKG_Extraction_Errors_{1}.log'.format(os.getcwd(), dtformat)
+error_log_handle = FileHandler(error_log_name)
+error_log_handle.setFormatter(file_log_format)
+error_log_handle.setLevel(logging.DEBUG)
+error_log_handle.addFilter(ErrorLevelFilter())
 
 logger = logging.getLogger('ekgstore')
 logger.setLevel(logging.DEBUG)
 logger.addHandler(console_handle)
 logger.addHandler(file_handle)
 logger.addHandler(summary_log_handle)
+logger.addHandler(error_log_handle)

@@ -4,7 +4,8 @@ import glob
 import datetime
 
 from tqdm import tqdm
-from ekgstore import logger, file_log_name
+from ekgstore import logger
+from ekgstore.logger import error_log_name, summary_log_name, file_log_name
 from ekgstore.parser import process_stack
 
 
@@ -30,8 +31,10 @@ def ekg_routine(in_dir, out_dir):
   output_dir = os.path.abspath(out_dir)
   pdfs = glob.glob('{0}/*.pdf'.format(input_dir))
   total_files_to_process = len(pdfs)
+  begin = datetime.datetime.now()
 
-  logger.info('--> Discovered {0} PDF files'.format(total_files_to_process))
+  logger.info('\n--> Began at {0}'.format(begin.strftime('%b/%d/%Y %I:%M %p')))
+  logger.info('--> Discovered {0} PDF files\n'.format(total_files_to_process))
 
   if os.path.exists(output_dir):
     if not os.path.isdir(output_dir):
@@ -45,9 +48,8 @@ def ekg_routine(in_dir, out_dir):
       raise click.Abort
 
   success, fail = 0, 0
-  begin = datetime.datetime.now()
 
-  for pdf in tqdm(pdfs, desc='Processed', unit='files'):
+  for pdf in tqdm(pdfs, desc='--> Processed', unit='files'):
     if process_pdf(pdf, output_dir):
       success += 1
     else:
@@ -56,9 +58,13 @@ def ekg_routine(in_dir, out_dir):
   end = datetime.datetime.now()
   elapsed = (end - begin).total_seconds()
 
-  logger.info('----> Summary:')
-  logger.info('--> Suceeded:    {0}\tfiles'.format(str(success)))
-  logger.info('--> Errored:     {0}\tfiles'.format(str(fail)))
-  logger.info('--> Total:       {0}\tfiles'.format(str(len(pdfs))))
-  logger.info('--> Output dir:  {0}'.format(output_dir))
-  logger.info('--> Elapsed:     {0} seconds'.format(str(elapsed)))
+  logger.info('\n--> Summary:')
+  logger.info('----> Suceeded    {0}\tfiles'.format(str(success)))
+  logger.info('----> Errored     {0}\tfiles'.format(str(fail)))
+  logger.info('----> Total       {0}\tfiles'.format(str(len(pdfs))))
+  logger.info('----> Output dir  {0}'.format(output_dir))
+  logger.info('----> Elapsed     {0} seconds'.format(str(elapsed)))
+  logger.info('\n--> Log Files:')
+  logger.info('----> Summary     {0}'.format(summary_log_name))
+  logger.info('----> Errors      {0}'.format(error_log_name))
+  logger.info('----> Complete    {0}'.format(file_log_name))
