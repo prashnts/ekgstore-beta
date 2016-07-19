@@ -32,3 +32,4 @@ class TestWaveform:
     pairs = self.p._path_as_waveform_(test_path, self.test_offset)
 
     assert all(np.equal(pairs[1], [160, 170, -30, -30, -22]))
+

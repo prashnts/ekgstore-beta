@@ -22,6 +22,7 @@ import numpy as np
 import contextlib
 
 from pyquery import PyQuery as pq
+from codecs import open
 
 from ekgstore.logger import logger
 
@@ -62,7 +63,7 @@ class Parser(object):
     except subprocess.CalledProcessError:
       raise RuntimeError('Cannot convert the provided file to SVG.')
     else:
-      with open(svg_file, 'r') as fl:
+      with open(svg_file, 'r', encoding='utf-8') as fl:
         self._svg = pq(fl.read().encode())
         self._svg.remove_namespaces()
         self._strip_elements_()
