@@ -307,9 +307,9 @@ class Metadata(Parser):
 
 
 def process_stack(file_name, out_path):
-  logger.info('----> Extracting Waveforms')
+  logger.debug('----> Extracting Waveforms')
   csv = Waveform.process(file_name)
-  logger.info('----> Extracting Header Metadata')
+  logger.debug('----> Extracting Header Metadata')
   meta = Metadata.process(file_name)
 
   assert 'ID' in meta
@@ -317,9 +317,9 @@ def process_stack(file_name, out_path):
   oid = meta['ID']
 
   csv.to_csv('{0}/{1}_{2}.csv'.format(out_path, oid, outfl), index=False)
-  logger.info('----> Writing Waveform as CSV')
+  logger.debug('----> Writing Waveform as CSV')
 
-  logger.info('----> Writing Metadata as JSON')
+  logger.debug('----> Writing Metadata as JSON')
   with open('{0}/{1}_{2}.json'.format(out_path, oid, outfl), 'w') as fl:
     json.dump(meta, fl, indent=2)
 

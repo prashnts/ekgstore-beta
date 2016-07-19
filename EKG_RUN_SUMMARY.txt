@@ -1,9 +1,0 @@
-
-
-----> Summary:
---> Log file name: /repository/project/ekgstore-beta/EKG_Extraction_20160719113750.log	
---> Suceeded:    5	files
---> Errored:     0	files
---> Total:       5	files
---> Output dir:  /d/out
---> Elapsed:     1.003084 seconds
