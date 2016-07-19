@@ -17,7 +17,7 @@ console_log_format = logging.Formatter(
 console_handle = StreamHandler()
 console_handle.setFormatter(console_log_format)
 
-dtformat = datetime.datetime.now().strftime('%Y-%m-%d--%H-%M-%S.%f')
+dtformat = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 file_log_name = '{0}/EKG_Extraction_{1}.log'.format(os.getcwd(), dtformat)
 file_handle = FileHandler(file_log_name)
 file_handle.setFormatter(file_log_format)

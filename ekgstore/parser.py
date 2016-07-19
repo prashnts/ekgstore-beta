@@ -307,13 +307,15 @@ def process_stack(file_name, out_path):
   logger.info('----> Extracting Header Metadata')
   meta = Metadata.process(file_name)
 
+  assert 'ID' in meta
   outfl = os.path.basename(file_name)[:-4]
+  oid = meta['ID']
 
-  csv.to_csv('{0}/{1}.csv'.format(out_path, outfl), index=False)
+  csv.to_csv('{0}/{1}_{2}.csv'.format(out_path, oid, outfl), index=False)
   logger.info('----> Writing Waveform as CSV')
 
   logger.info('----> Writing Metadata as JSON')
-  with open('{0}/{1}.json'.format(out_path, outfl), 'w') as fl:
+  with open('{0}/{1}_{2}.json'.format(out_path, oid, outfl), 'w') as fl:
     json.dump(meta, fl, indent=2)
 
 
