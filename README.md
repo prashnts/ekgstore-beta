@@ -8,19 +8,20 @@ Setting up the development environment:
 ### 1. Requirements
 > Skip the requirements that you already have.
 
-- Install/Update to `Python 3.5`. To save our souls from Unicode incompatibilities, we use `Python 3`. Use `homebrew` on OSX and your system package manager on Linux. You can use `chocolatey` on Windows as well.
-- Install Python packages. Run: `pip install -r requirements.txt` from module's root directory. Make sure `pip` is targetting to `python3`, or use `pip3` instead.
 - Install Inkscape and make sure it is in your system `PATH`. On OSX, you can use `brew cask install inkscape`, while on other systems please follow the official documentation.
 
-### 2. Using the commandline arguments to run the demo
-There is a demo script, very creatively named `demo.py` in the module root, which you may use to test the environment on your system. To execute, run:
+### 2. Installing the Commandline Utility
+- Execute `python setup.py develop` to install the development package. 
+- To run tests, first install few other essential. Execute `pip install -r requirements.txt`.
+- The tests are written using `nose`, a Python testing library. Run tests by executing `nosetests`.
 
-```shell
-python3 demo.py
+### 3. Using Commandline Utility
+This module also installs a commandline utility that can be used to process files from any location in filesystem.
 
-# Specify a file
-python3 demo.py <some pdf file>.pdf
-```
+- At any point, execute `ekgstore --help` to get the usage reference.
+- To process files in a directory, execute `ekgstore <input dir> <output dir>`.
+- To process all the files in current directory and store the result in the same, run `ekgstore . .`, where `.` refers to the current directory.
+
 
 ## Collaboration
 ### Working on new features
