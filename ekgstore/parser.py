@@ -105,12 +105,17 @@ class Waveform(Parser):
     assert path[0] is 'm'
     path = path[2:]
     steps = [list(map(float, _.split(','))) for _ in path.split(' ')]
+
+    # [[xi..], [yi..]]
     steps_pair = list(map(list, zip(*steps)))
 
     for i in range(2):
       if offset is not None:
-        delta = steps_pair[i][0] - offset[:,i]
-        steps_pair[i][0] = delta[np.abs(delta).argsort()[0]]
+        axis_approx = np.cumsum(steps_pair[i]).mean()
+        delta_initial = steps_pair[i][0] - offset[:,i]
+        delta_axial = axis_approx - offset[:,i]
+        closest_axis_index = np.abs(delta_axial).argsort()[0]
+        steps_pair[i][0] = delta_initial[closest_axis_index]
       else:
         steps_pair[i][0] = 0
 
