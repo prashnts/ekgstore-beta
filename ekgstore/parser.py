@@ -252,22 +252,24 @@ class Metadata(Parser):
           .text
           .values[0])
 
-    meta['Remarks'] = '\n'.join((text_nodes
-        .query('x == 119')
-        .text
-        .values[:-1]))
-
-    eeg_report_keys = text_nodes.query('x == 54')
-    for row in eeg_report_keys.values:
-      y_coor = row[1]
-      rvalues = (text_nodes
-          .query('y == {0} and 50 < x < 110'.format(y_coor))
-          .sort_values('x')
+    with supress(TypeError):
+      meta['Remarks'] = '\n'.join((text_nodes
+          .query('x == 119')
           .text
-          .values)
-      key = rvalues[0]
-      value = ' '.join(rvalues[1:])
-      meta[key] = value
+          .values[:-1]))
+
+    with supress(IndexError):
+      eeg_report_keys = text_nodes.query('x == 54')
+      for row in eeg_report_keys.values:
+        y_coor = row[1]
+        rvalues = (text_nodes
+            .query('y == {0} and 50 < x < 110'.format(y_coor))
+            .sort_values('x')
+            .text
+            .values)
+        key = rvalues[0]
+        value = ' '.join(rvalues[1:])
+        meta[key] = value
 
     bottom_row = (text_nodes
         .query('y == 11')
@@ -281,23 +283,27 @@ class Metadata(Parser):
       meta['Signal'] = bottom_row[2]
 
     split_and_strip = lambda x: [y.strip() for y in x.split(':')]
-    meta.update(dict(map(split_and_strip, (text_nodes
-        .query('y == 162')
-        .sort_values('x')
-        .text
-        .values))))
 
-    meta.update(dict(map(split_and_strip, (text_nodes
-        .query('x == 4 and 100 < y < 190')
-        .sort_values('y', ascending=False)
-        .text
-        .values))))
+    with supress(ValueError):
+      meta.update(dict(map(split_and_strip, (text_nodes
+          .query('y == 162')
+          .sort_values('x')
+          .text
+          .values))))
 
-    meta.update(dict(map(split_and_strip, (text_nodes
-        .query('x == 32')
-        .sort_values('y', ascending=False)
-        .text
-        .values))))
+    with supress(ValueError):
+      meta.update(dict(map(split_and_strip, (text_nodes
+          .query('x == 4 and 100 < y < 190')
+          .sort_values('y', ascending=False)
+          .text
+          .values))))
+
+    with supress(ValueError):
+      meta.update(dict(map(split_and_strip, (text_nodes
+          .query('x == 32')
+          .sort_values('y', ascending=False)
+          .text
+          .values))))
 
     normalise_key = lambda x: re.sub(r'[^\w\d\s\-_\\]+', '', x)
     normal_meta = {normalise_key(k): v for k, v in meta.items()}
