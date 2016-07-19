@@ -10,7 +10,7 @@ setup(
   name='ekgstore',
   description='Parses and extracts metadata and waveforms from EKG files.',
   long_description=long_description,
-  version='0.2.6',
+  version='0.2.8',
   author='Prashant Sinha',
   author_email='prashant@ducic.ac.in',
   packages=['ekgstore'],
