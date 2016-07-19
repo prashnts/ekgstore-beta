@@ -22,6 +22,9 @@ This module also installs a commandline utility that can be used to process file
 - To process files in a directory, execute `ekgstore <input dir> <output dir>`.
 - To process all the files in current directory and store the result in the same, run `ekgstore . .`, where `.` refers to the current directory.
 
+## Notes
+**Scaling Factor**: We obtain the scaling factor from the length and height of the "caliberation marker" at the left side of pdf. Further, we have assumed that the ECG is caliberated at Standard settings.
+
 
 ## Collaboration
 ### Working on new features
