@@ -314,7 +314,7 @@ class Metadata(Parser):
     return self.infer_text()
 
 
-def process_stack(file_name, out_path):
+def build_stack(file_name):
   logger.debug('----> Extracting Waveforms')
   csv, units = Waveform.process(file_name)
   logger.debug('----> Extracting Header Metadata')
@@ -333,6 +333,11 @@ def process_stack(file_name, out_path):
   unit_x, unit_y = units
   csv['actual_X'] = csv['absoluteX'] * (1 / factor_x) * unit_x
   csv['actual_Y'] = csv['absoluteY'] * (1 / factor_y) * unit_y
+
+  return csv, meta
+
+def process_stack(file_name, out_path):
+  csv, meta = build_stack(file_name)
 
   outfl = os.path.basename(file_name)[:-4]
   oid = meta['ID']
