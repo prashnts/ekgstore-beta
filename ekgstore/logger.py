@@ -21,7 +21,7 @@ file_log_format = logging.Formatter(
 )
 console_log_format = logging.Formatter("%(message)s")
 error_log_format = logging.Formatter(
-  '"%(asctime)s",%(levelname)s,"%(module)s.%(funcName)s:%(lineno)d","%(message)s"\r',
+  '"%(asctime)s",%(levelname)s,"%(module)s.%(funcName)s:%(lineno)d",%(message)s\r',
   "%Y-%m-%d %H:%M:%S"
 )
 

@@ -19,8 +19,7 @@ def process_pdf(file_name, output_dir, *arg, **kwa):
     return True
   except Exception as e:
     exc = sys.exc_info()
-    logger.error('----> Fail: {0}'.format(file_name))
-    logger.error('------> Info: {0}'.format(exc[1]))
+    logger.error('"{0}","{1}"'.format(file_name, exc[1]))
     logger.debug('------> Stack Trace:', exc_info=exc)
 
 @click.command()
