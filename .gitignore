@@ -92,3 +92,4 @@ ENV/
 
 *.debug.py
 *.txt
+*.csv
