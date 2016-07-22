@@ -65,7 +65,7 @@ class Parser(object):
       raise RuntimeError('Cannot convert the provided file to SVG.')
     else:
       with open(svg_file, 'r', encoding='utf-8') as fl:
-        self._svg = pq(fl.read().encode())
+        self._svg = pq(fl.read().encode(encoding='utf-8'))
         self._svg.remove_namespaces()
         self._strip_elements_()
 
@@ -104,7 +104,8 @@ class Waveform(Parser):
   def _path_as_waveform_(self, path, offset=None):
     """Parse SVG path to coordinates"""
     # This parses the SVG path
-    assert path[0] is 'm'
+    assert type(path) is str, 'Expected "path" to be a string.'
+    assert path[0] is 'm', 'Expected "path" to be relative SVG.m expression.'
     path = path[2:]
     steps = [list(map(float, _.split(','))) for _ in path.split(' ')]
 
@@ -320,11 +321,11 @@ def process_stack(file_name, out_path):
   meta = Metadata.process(file_name)
 
   logger.debug('----> Verifying Data Integrity')
-  assert 'Scale_x' in meta
-  assert 'Scale_y' in meta
-  assert 'mm/s' in meta['Scale_x']
-  assert 'mm/mV' in meta['Scale_y']
-  assert 'ID' in meta
+  assert 'Scale_x' in meta, "Can't find `Scale_x` in Metadata."
+  assert 'Scale_y' in meta, "Can't find `Scale_y` in Metadata."
+  assert 'mm/s' in meta['Scale_x'], "Expected unit `mm/s` in `Scale_x`."
+  assert 'mm/mV' in meta['Scale_y'], "Expected unit `mm/mV` in `Scale_y`."
+  assert 'ID' in meta, "Can't find `ID` in Metadata."
 
   logger.debug('----> Applying axial scaling')
   factor_x, factor_y = [int(re.match(r'(\d+)', meta[f]).group(0))
