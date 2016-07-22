@@ -1,16 +1,24 @@
+import re
+import ast
+
 from codecs import open
 from os import path
 from setuptools import setup
 
+
 here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
-  long_description = f.read()
+with open(path.join(here, 'README.md'), 'r', encoding='utf-8') as fl:
+  long_description = fl.read()
+
+with open(path.join(here, 'ekgstore', '__init__.py'), 'r') as fl:
+  version_str = re.search(r'__version_info__ = (.*)', fl.read(), re.M).group(1)
+  version = '.'.join(map(str, ast.literal_eval(version_str)))
 
 setup(
   name='ekgstore',
   description='Parses and extracts metadata and waveforms from EKG files.',
   long_description=long_description,
-  version='0.2.8',
+  version=version,
   author='Prashant Sinha',
   author_email='prashant@ducic.ac.in',
   packages=['ekgstore'],

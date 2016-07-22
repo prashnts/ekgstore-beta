@@ -126,14 +126,16 @@ class Waveform(Parser):
     """Infer x and y axis units from the marker"""
     # assuming the wave on left is for marking units
     arr_range = lambda x: x.max() - x.min()
+    step_size = lambda x: (x[1:] - x[:-1]).mean()
     x_steps, y_steps = self._path_as_waveform_(unit_marker)
+    x_signal = x_steps[y_steps > 0]
 
-    x_sz = len(x_steps)
-    x_unit = 1 / (x_sz * 25)
+    x_step = step_size(x_steps)
+    # Compensate for the "transition on the begining and end"
+    x_sz = 5.0 / (arr_range(x_signal) + x_step)
     # Two blocks
-    y_sz = arr_range(y_steps)
-    y_unit = 10 / y_sz
-    return x_unit, y_unit
+    y_sz = 10.0 / (arr_range(y_steps))
+    return x_sz, y_sz
 
   def _get_offsets_(self, unit_marker):
     pattern = r'm (-?[\d\.]+,-?[\d\.]+)'
@@ -177,17 +179,14 @@ class Waveform(Parser):
 
   def export(self):
     waves, units = self.get_waves()
-    x_unit, y_unit = units
     rows = []
     for label, waveform in waves:
       for x, y in zip(*waveform):
-        x_scaled = x * x_unit
-        y_scaled = y * y_unit
-        rows.append([label, x, y, x_scaled, y_scaled])
+        rows.append([label, x, y])
 
-    columns = ('lead', 'absoluteX', 'absoluteY', 'actual_X', 'actual_Y')
+    columns = ('lead', 'absoluteX', 'absoluteY')
     df = pd.DataFrame(rows, columns=columns)
-    return df
+    return df, units
 
 
 @contextlib.contextmanager
@@ -315,18 +314,31 @@ class Metadata(Parser):
 
 def process_stack(file_name, out_path):
   logger.debug('----> Extracting Waveforms')
-  csv = Waveform.process(file_name)
+  csv, units = Waveform.process(file_name)
   logger.debug('----> Extracting Header Metadata')
   meta = Metadata.process(file_name)
 
+  logger.debug('----> Verifying Data Integrity')
+  assert 'Scale_x' in meta
+  assert 'Scale_y' in meta
+  assert 'mm/s' in meta['Scale_x']
+  assert 'mm/mV' in meta['Scale_y']
   assert 'ID' in meta
+
+  logger.debug('----> Applying axial scaling')
+  factor_x, factor_y = [int(re.match(r'(\d+)', meta[f]).group(0))
+      for f in ['Scale_x', 'Scale_y']]
+  unit_x, unit_y = units
+  csv['actual_X'] = csv['absoluteX'] * (1 / factor_x) * unit_x
+  csv['actual_Y'] = csv['absoluteY'] * (1 / factor_y) * unit_y
+
   outfl = os.path.basename(file_name)[:-4]
   oid = meta['ID']
 
   csv.to_csv('{0}/{1}_{2}.csv'.format(out_path, oid, outfl), index=False)
-  logger.debug('----> Writing Waveform as CSV')
+  logger.debug('----> Writing Waveform to CSV')
 
-  logger.debug('----> Writing Metadata as JSON')
+  logger.debug('----> Writing Metadata to JSON')
   with open('{0}/{1}_{2}.json'.format(out_path, oid, outfl), 'w') as fl:
     json.dump(meta, fl, indent=2)
 
