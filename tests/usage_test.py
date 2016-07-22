@@ -22,5 +22,9 @@ def test_incorrect():
 def test_integrity():
   csv, meta = build_stack('dat/test2.pdf')
 
-  np.testing.assert_allclose(csv['actual_X'][:5], [0.264, 0.268, 0.272, 0.276, 0.28])
-  np.testing.assert_allclose(csv['actual_Y'][:5], [-0.264, -0.254, -0.244, -0.244, -0.244])
+  np.testing.assert_allclose(
+    csv['actual_X'][:5],
+    [0.264, 0.268, 0.272, 0.276, 0.28])
+  np.testing.assert_allclose(
+    csv['actual_Y'][:5],
+    [-0.264, -0.254, -0.244, -0.244, -0.244])
