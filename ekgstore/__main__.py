@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from ekgstore.console import ekg_routine
 
 if __name__ == '__main__':

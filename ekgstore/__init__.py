@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # EKGStore
 from ekgstore.parser import Waveform, Metadata
 from ekgstore.logger import logger

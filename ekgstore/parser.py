@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """EKG PDF Parsing Routine
 Convert PDF to SVG using inkscape, extract waveform from the SVG and
 normalise the waveform.
