@@ -15,7 +15,6 @@ import os
 import re
 import ast
 import json
-import subprocess
 import hashlib
 import pandas as pd
 import numpy as np
@@ -25,6 +24,7 @@ import contextlib
 from pyquery import PyQuery as pq
 from codecs import open
 
+from ekgstore import inkscape
 from ekgstore.logger import logger
 
 
@@ -44,30 +44,25 @@ class Parser(object):
   # Exceptions
   - RuntimeError: Raised if the SVG couldn't be generated.
   """
-  def __init__(self, pdf_fl):
+  def __init__(self, pdf_fl, timeout=None, *arg, **kwa):
     self._fl_loc = os.path.abspath(pdf_fl)
+    self._timeout = timeout
 
   def __mk_svg__(self):
     """Convert PDF to SVG"""
     svg_hash = hashlib.md5(self._fl_loc.encode()).hexdigest()
     svg_file = '/tmp/{0}.svg'.format(svg_hash)
-    try:
-      if not os.path.exists(svg_file):
-        subprocess.check_output([
-          'inkscape',
-          '--file={0}'.format(self._fl_loc),
-          '--export-plain-svg={0}'.format(svg_file),
-          '--without-gui',
-        ])
-    except EnvironmentError:
-      raise RuntimeError('`inkscape` binary is required.')
-    except subprocess.CalledProcessError:
-      raise RuntimeError('Cannot convert the provided file to SVG.')
-    else:
-      with open(svg_file, 'r', encoding='utf-8') as fl:
-        self._svg = pq(fl.read().encode(encoding='utf-8'))
-        self._svg.remove_namespaces()
-        self._strip_elements_()
+
+    if not os.path.exists(svg_file):
+      inkscape.convert(
+          location=self._fl_loc,
+          destination=svg_file,
+          timeout=self._timeout)
+
+    with open(svg_file, 'r', encoding='utf-8') as fl:
+      self._svg = pq(fl.read().encode(encoding='utf-8'))
+      self._svg.remove_namespaces()
+      self._strip_elements_()
 
   def _strip_elements_(self):
     """Remove unnecessary path elements"""
@@ -95,8 +90,8 @@ class Parser(object):
     return self._svg
 
   @classmethod
-  def process(cls, flname):
-    obj = cls(flname)
+  def process(cls, flname, *arg, **kwa):
+    obj = cls(flname, *arg, **kwa)
     return obj.export()
 
 
@@ -141,10 +136,10 @@ class Waveform(Parser):
 
   def _get_offsets_(self, unit_marker):
     pattern = r'm (-?[\d\.]+,-?[\d\.]+)'
-    markers = (unit_marker
-        .map(lambda: re.match(pattern, pq(this).attr('d')).groups()[0]))
-
-    return np.array(list(map(ast.literal_eval, markers)))
+    with supress(AttributeError):
+      markers = (unit_marker
+          .map(lambda: re.match(pattern, pq(this).attr('d')).groups()[0]))
+      return np.array(list(map(ast.literal_eval, markers)))
 
   def get_waves(self):
     """Find waveforms in the SVG"""
@@ -314,11 +309,11 @@ class Metadata(Parser):
     return self.infer_text()
 
 
-def build_stack(file_name):
+def build_stack(file_name, *arg, **kwa):
   logger.debug('----> Extracting Waveforms')
-  csv, units = Waveform.process(file_name)
+  csv, units = Waveform.process(file_name, *arg, **kwa)
   logger.debug('----> Extracting Header Metadata')
-  meta = Metadata.process(file_name)
+  meta = Metadata.process(file_name, *arg, **kwa)
 
   logger.debug('----> Verifying Data Integrity')
   assert 'Scale_x' in meta, "Can't find `Scale_x` in Metadata."
@@ -336,8 +331,8 @@ def build_stack(file_name):
 
   return csv, meta
 
-def process_stack(file_name, out_path):
-  csv, meta = build_stack(file_name)
+def process_stack(file_name, out_path, *arg, **kwa):
+  csv, meta = build_stack(file_name, *arg, **kwa)
 
   outfl = os.path.basename(file_name)[:-4]
   oid = meta['ID']

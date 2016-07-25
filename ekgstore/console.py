@@ -3,10 +3,11 @@ import os
 import sys
 import click
 import glob
+import time
 import datetime
 
 from tqdm import tqdm
-from ekgstore import logger, __version__
+from ekgstore import logger, __version__, _dir_, inkscape
 from ekgstore.logger import error_log_name, summary_log_name, file_log_name
 from ekgstore.parser import process_stack
 
@@ -14,13 +15,25 @@ from ekgstore.parser import process_stack
 def process_pdf(file_name, output_dir, *arg, **kwa):
   try:
     logger.debug('--> Begin: {0}'.format(file_name))
-    process_stack(file_name, output_dir)
+    process_stack(file_name, output_dir, *arg, **kwa)
     logger.debug('----> Done')
     return True
   except Exception as e:
     exc = sys.exc_info()
     logger.error('"{0}","{1}"'.format(file_name, exc[1]))
     logger.debug('------> Stack Trace:', exc_info=exc)
+
+
+def warmup():
+  logger.info('==> Warming-up')
+  logger.info('----> Inkscape Version: {0}'.format(inkscape.version()))
+  logger.info('----> Calibrating runtime...')
+  tick = time.time()
+  inkscape.convert('{0}/dat/test2_pass.pdf'.format(_dir_), '/dev/null')
+  elapsed = (time.time() - tick) * 3
+  logger.info('----> Conversion timeout (3x): {0}'.format(str(elapsed)))
+  return elapsed
+
 
 @click.command()
 @click.argument('in_dir', type=click.Path(exists=True))
@@ -37,6 +50,8 @@ def ekg_routine(in_dir, out_dir):
   begin = datetime.datetime.now()
 
   logger.info('==> EKGStore v{0}'.format(__version__))
+
+  timeout = warmup()
 
   logger.info('--> Began at {0}'.format(begin.strftime('%b/%d/%Y %I:%M:%S %p')))
   logger.info('--> Discovered {0} PDF files'.format(total_files_to_process))
@@ -55,7 +70,7 @@ def ekg_routine(in_dir, out_dir):
   success, fail = 0, 0
 
   for pdf in tqdm(pdfs, desc='--> Processed', unit='files'):
-    if process_pdf(pdf, output_dir):
+    if process_pdf(pdf, output_dir, timeout=timeout):
       success += 1
     else:
       fail += 1

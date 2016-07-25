@@ -1,11 +1,12 @@
 import nose
 import numpy as np
 
+from ekgstore import _dir_
 from ekgstore.parser import build_stack
 
 
 def test_usage():
-  csv, meta = build_stack('dat/test2.pdf')
+  csv, meta = build_stack(_dir_ + '/dat/test2_pass.pdf')
 
   assert meta['ID'] == '011489879'
   assert meta['Scale_x'] == '25mm/s'
@@ -13,14 +14,14 @@ def test_usage():
 
 def test_incorrect():
   try:
-    build_stack('dat/its-ok-to.pdf')
-  except AssertionError:
+    build_stack(_dir_ + '/dat/test4_fail.pdf')
+  except Exception:
     assert True
   else:
     assert False, 'Expected AssertionError'
 
 def test_integrity():
-  csv, meta = build_stack('dat/test2.pdf')
+  csv, meta = build_stack(_dir_ + '/dat/test2_pass.pdf')
 
   np.testing.assert_allclose(
     csv['actual_X'][:5],
