@@ -22,6 +22,7 @@ def process_pdf(file_name, output_dir, *arg, **kwa):
     logger.error('"{0}","{1}"'.format(file_name, exc[1]))
     logger.debug('------> Stack Trace:', exc_info=exc)
 
+
 @click.command()
 @click.argument('in_dir', type=click.Path(exists=True))
 @click.argument('out_dir', type=click.Path())

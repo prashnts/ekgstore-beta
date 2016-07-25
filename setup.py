@@ -1,19 +1,31 @@
 # -*- coding: utf-8 -*-
-import re
 import ast
+import os
+import re
+import sys
 
 from codecs import open
-from os import path
 from setuptools import setup
 
 
-here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'README.md'), 'r', encoding='utf-8') as fl:
+here = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as fl:
   long_description = fl.read()
 
-with open(path.join(here, 'ekgstore', '__init__.py'), 'r') as fl:
+with open(os.path.join(here, 'ekgstore', '__init__.py'), 'r') as fl:
   version_str = re.search(r'__version_info__ = (.*)', fl.read(), re.M).group(1)
   version = '.'.join(map(str, ast.literal_eval(version_str)))
+
+requires = [
+  'click',
+  'numpy',
+  'pandas',
+  'pyquery',
+  'tqdm',
+]
+
+if sys.version_info[0] < 3:
+  requires.append('subprocess32')
 
 setup(
   name='ekgstore',
@@ -23,13 +35,7 @@ setup(
   author='Prashant Sinha',
   author_email='prashant@ducic.ac.in',
   packages=['ekgstore'],
-  install_requires=[
-    'pyquery',
-    'numpy',
-    'click',
-    'pandas',
-    'tqdm',
-  ],
+  install_requires=requires,
   tests_require=[
     'nose',
   ],

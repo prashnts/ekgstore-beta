@@ -15,7 +15,6 @@ import os
 import re
 import ast
 import json
-import subprocess
 import hashlib
 import pandas as pd
 import numpy as np
@@ -25,6 +24,7 @@ import contextlib
 from pyquery import PyQuery as pq
 from codecs import open
 
+from ekgstore import inkscape
 from ekgstore.logger import logger
 
 
@@ -51,23 +51,14 @@ class Parser(object):
     """Convert PDF to SVG"""
     svg_hash = hashlib.md5(self._fl_loc.encode()).hexdigest()
     svg_file = '/tmp/{0}.svg'.format(svg_hash)
-    try:
-      if not os.path.exists(svg_file):
-        subprocess.check_output([
-          'inkscape',
-          '--file={0}'.format(self._fl_loc),
-          '--export-plain-svg={0}'.format(svg_file),
-          '--without-gui',
-        ])
-    except EnvironmentError:
-      raise RuntimeError('`inkscape` binary is required.')
-    except subprocess.CalledProcessError:
-      raise RuntimeError('Cannot convert the provided file to SVG.')
-    else:
-      with open(svg_file, 'r', encoding='utf-8') as fl:
-        self._svg = pq(fl.read().encode(encoding='utf-8'))
-        self._svg.remove_namespaces()
-        self._strip_elements_()
+
+    if not os.path.exists(svg_file):
+      inkscape.convert(location=self._fl_loc, destination=svg_file)
+
+    with open(svg_file, 'r', encoding='utf-8') as fl:
+      self._svg = pq(fl.read().encode(encoding='utf-8'))
+      self._svg.remove_namespaces()
+      self._strip_elements_()
 
   def _strip_elements_(self):
     """Remove unnecessary path elements"""
