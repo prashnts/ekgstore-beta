@@ -6,7 +6,7 @@ import glob
 import datetime
 
 from tqdm import tqdm
-from ekgstore import logger, __version__
+from ekgstore import logger, __version__, inkscape
 from ekgstore.logger import error_log_name, summary_log_name, file_log_name
 from ekgstore.parser import process_stack
 
@@ -21,6 +21,12 @@ def process_pdf(file_name, output_dir, *arg, **kwa):
     exc = sys.exc_info()
     logger.error('"{0}","{1}"'.format(file_name, exc[1]))
     logger.debug('------> Stack Trace:', exc_info=exc)
+
+
+def warmup():
+  logger.info('==> Warming-up')
+  logger.info('----> Inkscape Version: {0}'.format(inkscape.version()))
+
 
 
 @click.command()

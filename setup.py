@@ -45,4 +45,5 @@ setup(
     ekgstore=ekgstore.console:ekg_routine
   ''',
   include_package_data=True,
+  package_data=dict(ekgstore=['dat/*.pdf']),
 )

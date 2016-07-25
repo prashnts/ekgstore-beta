@@ -132,10 +132,10 @@ class Waveform(Parser):
 
   def _get_offsets_(self, unit_marker):
     pattern = r'm (-?[\d\.]+,-?[\d\.]+)'
-    markers = (unit_marker
-        .map(lambda: re.match(pattern, pq(this).attr('d')).groups()[0]))
-
-    return np.array(list(map(ast.literal_eval, markers)))
+    with supress(AttributeError):
+      markers = (unit_marker
+          .map(lambda: re.match(pattern, pq(this).attr('d')).groups()[0]))
+      return np.array(list(map(ast.literal_eval, markers)))
 
   def get_waves(self):
     """Find waveforms in the SVG"""
