@@ -36,7 +36,7 @@ def passthru(timeout=None, **kwa):
 
 def version():
   out = passthru(version=True)
-  vinfo = str(out)
+  vinfo = out.decode()
   assert vinfo.startswith('Inkscape'), 'Unknown Inkscape version.'
   return vinfo[9:14]
 

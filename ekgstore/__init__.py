@@ -7,7 +7,7 @@ from ekgstore.logger import logger
 
 __all__ = ('Waveform', 'Metadata')
 
-__version_info__ = (0, 4, 2)
+__version_info__ = (0, 4, 3)
 __version__ = '.'.join(map(str, __version_info__))
 
 _dir_ = os.path.dirname(__file__)
