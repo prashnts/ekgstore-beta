@@ -44,8 +44,9 @@ class Parser(object):
   # Exceptions
   - RuntimeError: Raised if the SVG couldn't be generated.
   """
-  def __init__(self, pdf_fl):
+  def __init__(self, pdf_fl, timeout=None, *arg, **kwa):
     self._fl_loc = os.path.abspath(pdf_fl)
+    self._timeout = timeout
 
   def __mk_svg__(self):
     """Convert PDF to SVG"""
@@ -53,7 +54,10 @@ class Parser(object):
     svg_file = '/tmp/{0}.svg'.format(svg_hash)
 
     if not os.path.exists(svg_file):
-      inkscape.convert(location=self._fl_loc, destination=svg_file)
+      inkscape.convert(
+          location=self._fl_loc,
+          destination=svg_file,
+          timeout=self._timeout)
 
     with open(svg_file, 'r', encoding='utf-8') as fl:
       self._svg = pq(fl.read().encode(encoding='utf-8'))
@@ -86,8 +90,8 @@ class Parser(object):
     return self._svg
 
   @classmethod
-  def process(cls, flname):
-    obj = cls(flname)
+  def process(cls, flname, *arg, **kwa):
+    obj = cls(flname, *arg, **kwa)
     return obj.export()
 
 
@@ -305,11 +309,11 @@ class Metadata(Parser):
     return self.infer_text()
 
 
-def build_stack(file_name):
+def build_stack(file_name, *arg, **kwa):
   logger.debug('----> Extracting Waveforms')
-  csv, units = Waveform.process(file_name)
+  csv, units = Waveform.process(file_name, *arg, **kwa)
   logger.debug('----> Extracting Header Metadata')
-  meta = Metadata.process(file_name)
+  meta = Metadata.process(file_name, *arg, **kwa)
 
   logger.debug('----> Verifying Data Integrity')
   assert 'Scale_x' in meta, "Can't find `Scale_x` in Metadata."
@@ -327,8 +331,8 @@ def build_stack(file_name):
 
   return csv, meta
 
-def process_stack(file_name, out_path):
-  csv, meta = build_stack(file_name)
+def process_stack(file_name, out_path, *arg, **kwa):
+  csv, meta = build_stack(file_name, *arg, **kwa)
 
   outfl = os.path.basename(file_name)[:-4]
   oid = meta['ID']

@@ -38,9 +38,13 @@ def version():
   out = passthru(version=True)
   vinfo = str(out)
   assert vinfo.startswith('Inkscape'), 'Unknown Inkscape version.'
-  return vinfo[9:]
+  return vinfo[9:14]
 
 
-def convert(location, destination):
-  passthru(file=location, exportPlainSvg=destination, withoutGui=True)
+def convert(location, destination, timeout=None):
+  return passthru(
+      file=location,
+      exportPlainSvg=destination,
+      withoutGui=True,
+      timeout=timeout)
 
