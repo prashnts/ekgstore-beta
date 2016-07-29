@@ -1,18 +1,31 @@
 # -*- coding: utf-8 -*-
+"""Defines the console app commands."""
+import click
+import datetime
+import glob2 as glob
 import os
 import sys
-import click
-import glob
 import time
-import datetime
 
 from tqdm import tqdm
-from ekgstore import logger, __version__, _dir_, inkscape
-from ekgstore.logger import error_log_name, summary_log_name, file_log_name
-from ekgstore.parser import process_stack
+
+from . import logger, __version__, _dir_, inkscape
+from .logger import (error_log_name, summary_log_name, file_log_name,
+    attach_file_loggers)
+from .parser import process_stack
 
 
 def process_pdf(file_name, output_dir, *arg, **kwa):
+  """Parse and write the output to specified directory.
+
+  Args:
+  - file_name (str): File to be processed.
+  - output_dir (str): Location where to write the output.
+
+  Notes:
+  - Additional arguments are passed on to `stack_processing`.
+  - This method supresses any exception raised by `stack_processing`.
+  """
   try:
     logger.debug('--> Begin: {0}'.format(file_name))
     process_stack(file_name, output_dir, *arg, **kwa)
@@ -25,6 +38,16 @@ def process_pdf(file_name, output_dir, *arg, **kwa):
 
 
 def warmup():
+  """Verify integrity of Inkscape application and discover runtime parameters.
+
+  Since the time taken to convert a pdf to svg is dictated by Inkscape, this
+  method supplies a typical example file and notices the time taken to perform
+  the conversion. We use this `time` later in timeout heuristics where we abort
+  the svg conversion of a pdf file if it takes 3x longer than the time we
+  discovered earlier. This gives us an acceptable safeguard against various
+  many pdf files that this tool isn't supposed to act upon, but is accidentally
+  supplied.
+  """
   logger.info('==> Warming-up')
   logger.info('----> Inkscape Version: {0}'.format(inkscape.version()))
   logger.info('----> Calibrating runtime...')
@@ -36,16 +59,69 @@ def warmup():
 
 
 @click.command()
-@click.argument('in_dir', type=click.Path(exists=True))
-@click.argument('out_dir', type=click.Path())
-def ekg_routine(in_dir, out_dir):
-  """EKG Store
+@click.option('-i', '--input',
+    multiple=True,
+    default=['**/*.pdf'],
+    metavar='<path/pattern>',
+    help='Input files or patterns (check examples).')
+@click.option('-o', '--output',
+    default='./output',
+    metavar='<path>',
+    help='Output directory.')
+@click.option('-x', '--no-logging',
+    is_flag=True,
+    help='Do not write any log files.')
+def ekg_routine(input, output, no_logging):
+  """Parse and extract metadata and waveforms from ECG files.
 
-  Parses and extracts metadata and waveforms from the EKG PDF data files.
+  As default behaviour, this tool will find all the files in current directory
+  and all subdirectories and write output to directory called "output".
+
+  More advanced behaviour is supported by supplying '-i' (or '--input') and
+  '-o' (or '--output') options. Check out the examples below for usage.
+
+  \b
+  Examples:
+  1. (default) Process all files in current and all children directories. Write
+     all output in "output" directory:
+      $ ekgstore
+  \b
+  2. Process files in directories "foo" and "bar" only:
+      $ ekgstore -i foo -i bar
+
+  \b
+  3. Process a single file:
+      $ ekgstore -i path/to/file.pdf
+
+  \b
+  4. Process all files like "anna_1.pdf", "anna_2.pdf" etc. in any directory:
+      $ ekgstore -i '**/anna_*.pdf'
+
+  \b
+  5. Specify output directory:
+      $ ekgstore -o path/to/directory
+
+  \b
+  Notes:
+  - Multiple input files are acceptable. The arguments can either be directory
+    names or patterns.
+  - Supply input files via "-i" or "--input" followed by your input.
+  - To supply multiple files, simply chain them.
+  - '/*.pdf' is appended to the input patterns if they do not end with '.pdf'.
+  - Glob patterns MUST be wrapped within single quotes (').
+
   """
-  input_dir = os.path.abspath(in_dir)
-  output_dir = os.path.abspath(out_dir)
-  pdfs = glob.glob('{0}/*.pdf'.format(input_dir))
+  if not no_logging:
+    attach_file_loggers(logger)
+  pdfs = []
+  for pattern in input:
+    if not pattern.endswith('.pdf'):
+      pattern += '/*.pdf'
+    for path in glob.glob(pattern):
+      if path.endswith('.pdf'):
+        pdfs.append(os.path.abspath(path))
+  output_dir = os.path.abspath(output)
+
   total_files_to_process = len(pdfs)
   begin = datetime.datetime.now()
 
@@ -84,7 +160,11 @@ def ekg_routine(in_dir, out_dir):
   logger.info('----> Total       {0}\tfiles'.format(str(len(pdfs))))
   logger.info('----> Output dir  {0}'.format(output_dir))
   logger.info('----> Elapsed     {0} seconds'.format(str(elapsed)))
-  logger.info('==> Log Files:')
-  logger.info('----> Summary     {0}'.format(summary_log_name))
-  logger.info('----> Errors      {0}'.format(error_log_name))
-  logger.info('----> Complete    {0}\n\n'.format(file_log_name))
+
+  if not no_logging:
+    logger.info('==> Log Files:')
+    logger.info('----> Summary     {0}'.format(summary_log_name))
+    logger.info('----> Errors      {0}'.format(error_log_name))
+    logger.info('----> Complete    {0}\n\n'.format(file_log_name))
+  else:
+    logger.info('==> Log Files not written.')

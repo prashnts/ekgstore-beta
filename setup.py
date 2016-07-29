@@ -18,6 +18,7 @@ with open(os.path.join(here, 'ekgstore', '__init__.py'), 'r') as fl:
 
 requires = [
   'click',
+  'glob2',
   'numpy',
   'pandas',
   'pyquery',

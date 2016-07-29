@@ -1,76 +1,103 @@
 # -*- coding: utf-8 -*-
-"""EKG PDF Parsing Routine
-Convert PDF to SVG using inkscape, extract waveform from the SVG and
-normalise the waveform.
-
-# Usage
-See ekgstore.Parser.
-
-# Cavetes
-For easier XML parsing, we strip away the namespace declaration from
-SVG, hence should need be to export, namespace must be appended.
-"""
+"""Defines parsing methods and processing routines."""
 from __future__ import division
-import os
-import re
 import ast
-import json
-import hashlib
-import pandas as pd
-import numpy as np
-
 import contextlib
+import hashlib
+import json
+import numpy as np
+import os
+import pandas as pd
+import re
 
-from pyquery import PyQuery as pq
 from codecs import open
+from pyquery import PyQuery as pq
 
-from ekgstore import inkscape
-from ekgstore.logger import logger
+from . import inkscape
+from .logger import logger
 
 
 class Parser(object):
-  """Extract Waveforms with Annotations
+  """Base SVG parsing class.
 
-  # Args
-  - pdf_fl (str): Path to the PDF file. Relative paths are fine.
+  Parser class is the first step in EKG PDF parsing. It begins by preparing
+  SVG of the PDF using Inkscape and strips away unnecessary elements from it.
 
-  # Usage
-  Make an object with path to valid PDF:
-  >>> obj = Parser('./dat/sample1.pdf')
+  The methods here basically define few heuristics that have been seen to work
+  for extracting the relevant information from the SVG tree.
 
-  ## Get labeled waveform and units tuple:
-  >>> waveform, units = obj.get_waves()
+  To understand the method, one needs to be familiar with SVG format. A quick
+  cheatsheet follows:
 
-  # Exceptions
-  - RuntimeError: Raised if the SVG couldn't be generated.
+      - SVG document is a collection of "elements" encoded in XML format.
+      - The elements, represented by XML nodes contain relevant properties that
+        contain information that instruct a SVG parser how to "draw" them. There
+        are many SVG elements defined in its protocol. The relevant ones are:
+
+          + ``g``: Group. This can contain any number of elements within it. Any
+            property set to it can be inherited by all the "children" nodes.
+          + ``text``: Defines a text node.
+          + ``path``: Defines a "path" node.
+
+      - Each SVG element can have properties that control their "look" much
+        similar to what CSS does to elements in an HTML document.
+
+          + ``d``: Specifies the coordinates on a "path" element.
+
+      - Path encoding - Suppose you have a path with coordinates
+          ``[(1, 1), (2, 10), (3, 15)]``. The encoding is in the following ways:
+
+          + Absolute path: ``'M 1,1 2,10 3,15'``
+          + Relative path: ``'m 1,1 1,9 1,5'``
+
+  Args:
+      file (str): Path to the PDF file.
+      timeout (Optional[float]): Specify an optional timeout which is supplied
+          to Inkscape.
   """
-  def __init__(self, pdf_fl, timeout=None, *arg, **kwa):
-    self._fl_loc = os.path.abspath(pdf_fl)
+  def __init__(self, file, timeout=None, *arg, **kwa):
+    self._pdf_file_path_ = os.path.abspath(file)
     self._timeout = timeout
 
-  def __mk_svg__(self):
-    """Convert PDF to SVG"""
-    svg_hash = hashlib.md5(self._fl_loc.encode()).hexdigest()
-    svg_file = '/tmp/{0}.svg'.format(svg_hash)
+  def _make_svg_(self):
+    """Convert the pdf to svg file if necessary and initialize parser.
 
-    if not os.path.exists(svg_file):
+    To obtain the SVG, we find the md5 hash of the PDF file's path. This allows
+    us to uniquely refer the files in a temporary location (``/tmp``) without
+    any conflicts due to similar file names or very long paths.
+
+    If the svg file already exist at ``/tmp`` (because it was previously
+    converted) then we do not bother converting it yet again and simply proceed
+    to parsing.
+
+    This method uses the ``inkscape`` wrapper to convert the pdf files to svg.
+    The svg file is processed by XML parsing utility called ``PyQuery``.
+    """
+    svg_hash = hashlib.md5(self._pdf_file_path_.encode()).hexdigest()
+    svg_path = '/tmp/{0}.svg'.format(svg_hash)
+
+    if not os.path.exists(svg_path):
       inkscape.convert(
-          location=self._fl_loc,
-          destination=svg_file,
+          location=self._pdf_file_path_,
+          destination=svg_path,
           timeout=self._timeout)
 
-    with open(svg_file, 'r', encoding='utf-8') as fl:
-      self._svg = pq(fl.read().encode(encoding='utf-8'))
+    with open(svg_path, 'r', encoding='utf-8') as fl:
+      content = fl.read().encode(encoding='utf-8')
+      self._svg = pq(content)
       self._svg.remove_namespaces()
       self._strip_elements_()
 
   def _strip_elements_(self):
-    """Remove unnecessary path elements"""
+    """Remove unnecessary path elements from SVG tree.
+
+    Since the SVG contained many elements which we do not need (such as grids),
+    we can remove those elements to make parsing convinient.
+    """
     # Remove svg definitions from the tree
     (self.svg
         .find('defs')
         .remove())
-
     # Remove paths which are composed of straight lines
     path_pattern = r'm -?[\d\.]+,-?[\d\.]+ (-?[\d\.]+,0 ?|0,-?[\d\.]+ ?)+z?$'
     (self.svg
@@ -82,25 +109,67 @@ class Parser(object):
         .find('g:empty')
         .remove())
 
+  def export(self):
+    """Parser subclasses can implement this method to generate the result."""
+    raise NotImplemented
+
   @property
   def svg(self):
-    """Memoized access to SVG XML tree"""
+    """Convinience property to obtain the SVG instance."""
     if not hasattr(self, '_svg'):
-      self.__mk_svg__()
+      self._make_svg_()
     return self._svg
 
   @classmethod
   def process(cls, flname, *arg, **kwa):
+    """Convinience method to process the file and obtain result."""
     obj = cls(flname, *arg, **kwa)
     return obj.export()
 
 
 class Waveform(Parser):
+  """Extract and Process the Waveforms, labels and Scaling factors.
+
+  The waveforms in SVG tree are SVG-Path elements using the relative "path
+  expression". This basically allows this parser to obtain each coordinate
+  with respect to the previous one.
+
+  Now, if we know the absolute coordinate of the first point, we can infer the
+  rest by performing the relative movement.
+
+  It was also discovered that the waveform path elements have their label text
+  nodes as a sibling node. All this is coded in the ``get_waves`` method.
+  """
   def _path_as_waveform_(self, path, offset=None):
-    """Parse SVG path to coordinates"""
+    """Parse SVG path to coordinates.
+
+    This method converts the "relative" path string to absolute coordinates.
+    If the ``offse`t` parameter is supplied, we use that for the first
+    coordinate, otherwise we assume them to be ``(0, 0)``.
+
+    One problem here is, however, that we have many calibration markers on the
+    pdf, corresponding to each ECG "strips". Hence, we require to figure out
+    which strip corresponds to which waveform.
+
+    This is solved by finding the baseline of each waveform by taking the mean
+    of the absolute coordinates, and then finding the closest offset to that.
+
+    Using that value for first coordinate allows us to get absolute values
+    of waveform coordinates.
+
+    Args:
+        path (str): SVG Path String
+        offset (Optional[list]): Coordinates of the offset values.
+
+    Returns:
+        Waveform in absolute coordinates.
+
+    Raises:
+        AssertionError: If ``path`` is not a relative SVG path expression.
+    """
     # This parses the SVG path
-    assert type(path) is str, 'Expected "path" to be a string.'
-    assert path[0] is 'm', 'Expected "path" to be relative SVG.m expression.'
+    assert type(path) is str, 'Expected path to be a string.'
+    assert path[0] is 'm', 'Expected path to be relative SVG.m expression.'
     path = path[2:]
     steps = [list(map(float, _.split(','))) for _ in path.split(' ')]
 
@@ -120,7 +189,12 @@ class Waveform(Parser):
     return [np.cumsum(x) for x in steps_pair]
 
   def _get_units_(self, unit_marker):
-    """Infer x and y axis units from the marker"""
+    """Infer x and y axis units from the calibration markers.
+
+    This finds the length and height of the markers on the left. Since we know
+    that the markers are supposed to be ``10 mm`` high and ``5 mm`` long, we
+    can find the factor values by unitary method.
+    """
     # assuming the wave on left is for marking units
     arr_range = lambda x: x.max() - x.min()
     step_size = lambda x: (x[1:] - x[:-1]).mean()
@@ -135,6 +209,14 @@ class Waveform(Parser):
     return x_sz, y_sz
 
   def _get_offsets_(self, unit_marker):
+    """Find the first coordinate of the calibration markers.
+
+    Since we infer the absolute coordinates of the waveform path from preceeding
+    coordinate, we require to find the absolute coordinate of the first one.
+
+    We solve this by using the calibration markers as the absolute and use
+    it as the "baseline" zero coordinate.
+    """
     pattern = r'm (-?[\d\.]+,-?[\d\.]+)'
     with supress(AttributeError):
       markers = (unit_marker
@@ -142,7 +224,28 @@ class Waveform(Parser):
       return np.array(list(map(ast.literal_eval, markers)))
 
   def get_waves(self):
-    """Find waveforms in the SVG"""
+    """Find waveforms and markers in the SVG.
+
+    This method utilises the SVG properties discussed above. We use the
+    heuristic that the labels and paths are siblings. Also, the calibration
+    markers do not have the labels.
+
+    Since we have already stripped out all the path elements that are straight
+    lines, the only ones left are waveforms and calibration markers.
+
+    We proceed using above two facts by first anchoring to all the path nodes,
+    then asserting if they have a text element as sibling. This leaves us with
+    only the waveform elements with their labels.
+
+    To obtain the calibration markers, we simply filter out the waveforms.
+
+    Having the calibration markers, we use them to find the offset that will
+    be useful to find absolute coordinate from waveform path and the scaling
+    factors for ``x`` and ``y`` axes.
+
+    Next, we use the ``_path_as_waveform_`` method with offsets to obtain the
+    absolute waveforms, hence solving this problem.
+    """
     # we want to look at waves that also have the annotations
     text_anchor_els = (self.svg
         .find('path')
@@ -175,6 +278,7 @@ class Waveform(Parser):
     return list(zip(labels, waveform)), self._get_units_(unit_marker)
 
   def export(self):
+    """Perform the heuristics to obtain the waveform dataframes and factors."""
     waves, units = self.get_waves()
     rows = []
     for label, waveform in waves:
@@ -188,6 +292,7 @@ class Waveform(Parser):
 
 @contextlib.contextmanager
 def supress(*exceptions):
+  """Convinience method to catch exceptions implicitly."""
   try:
     yield
   except exceptions:
@@ -196,6 +301,14 @@ def supress(*exceptions):
 
 class Metadata(Parser):
   def get_text_nodes(self):
+    """Obtain the text nodes along with their coordinates.
+
+    The text nodes are positioned via a transformation matrix. We parse this
+    matrix here and obtain the ``(x, y)`` coordinates of the nodes from it.
+
+    By scaling these coordinates by a factor of ``1/100`` we can "clump
+    together" nodes that are closer, hence easing the heuristic filtering later.
+    """
     def node_transform(el):
       try:
         transform_mat = ast.literal_eval(el.attr('transform')[6:])
@@ -212,10 +325,20 @@ class Metadata(Parser):
     return pd.DataFrame(nodes_paired, columns=['x', 'y', 'text'])
 
   def infer_text(self):
+    """Use heuristics to infer text nodes to structured data.
+
+    This uses the supplied heuristics of the positions of various text elements
+    in the SVG tree to filter data and label them.
+
+    The procedure is greedy -- we try to find as many elements that match our
+    parameters as possible.
+
+    We use the ``x``, ``y`` coordinates to approximate decision tree that
+    groups the data after applying several normalization as can be seen in code.
+    """
     text_nodes = self.get_text_nodes()
     meta = {}
 
-    # XXX: This section is pretty much a hack, and may not be robust.
     top_row = (text_nodes
         .query('y == 204')
         .sort_values('x')
@@ -306,10 +429,23 @@ class Metadata(Parser):
     return normal_meta
 
   def export(self):
+    """Apply heuristics to obtain metadata from the PDF."""
     return self.infer_text()
 
 
 def build_stack(file_name, *arg, **kwa):
+  """File processing Routine.
+
+  This routine processes the input file to extract the waveform, factors
+  and the metadata.
+
+  It ensures that a minimum amount of metadata is discovered before moving
+  further. These metadata are scaling factors and ID.
+
+  We use the Scale values in metadata with factors returned by ``Waveform`` to
+  calculate the final scaling factors which is added as columns to the
+  dataframes.
+  """
   logger.debug('----> Extracting Waveforms')
   csv, units = Waveform.process(file_name, *arg, **kwa)
   logger.debug('----> Extracting Header Metadata')
@@ -332,6 +468,13 @@ def build_stack(file_name, *arg, **kwa):
   return csv, meta
 
 def process_stack(file_name, out_path, *arg, **kwa):
+  """Process inputs and write the result to disk.
+
+  Args:
+      file_name (str): Path to the file.
+      out_path (str): Where to write the result at.
+      Additional arguments are passed on to ``build_stack``.
+  """
   csv, meta = build_stack(file_name, *arg, **kwa)
 
   outfl = os.path.basename(file_name)[:-4]
