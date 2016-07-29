@@ -1,18 +1,30 @@
 # -*- coding: utf-8 -*-
+"""Defines the console app commands."""
+import click
+import datetime
+import glob2 as glob
 import os
 import sys
-import click
-import glob
 import time
-import datetime
 
 from tqdm import tqdm
+
 from . import logger, __version__, _dir_, inkscape
 from .logger import error_log_name, summary_log_name, file_log_name
 from .parser import process_stack
 
 
 def process_pdf(file_name, output_dir, *arg, **kwa):
+  """Parse and write the output to specified directory.
+
+  Args:
+  - file_name (str): File to be processed.
+  - output_dir (str): Location where to write the output.
+
+  Notes:
+  - Additional arguments are passed on to `stack_processing`.
+  - This method supresses any exception raised by `stack_processing`.
+  """
   try:
     logger.debug('--> Begin: {0}'.format(file_name))
     process_stack(file_name, output_dir, *arg, **kwa)
@@ -25,6 +37,16 @@ def process_pdf(file_name, output_dir, *arg, **kwa):
 
 
 def warmup():
+  """Verify integrity of Inkscape application and discover runtime parameters.
+
+  Since the time taken to convert a pdf to svg is dictated by Inkscape, this
+  method supplies a typical example file and notices the time taken to perform
+  the conversion. We use this `time` later in timeout heuristics where we abort
+  the svg conversion of a pdf file if it takes 3x longer than the time we
+  discovered earlier. This gives us an acceptable safeguard against various
+  many pdf files that this tool isn't supposed to act upon, but is accidentally
+  supplied.
+  """
   logger.info('==> Warming-up')
   logger.info('----> Inkscape Version: {0}'.format(inkscape.version()))
   logger.info('----> Calibrating runtime...')
@@ -36,16 +58,19 @@ def warmup():
 
 
 @click.command()
-@click.argument('in_dir', type=click.Path(exists=True))
-@click.argument('out_dir', type=click.Path())
-def ekg_routine(in_dir, out_dir):
-  """EKG Store
-
-  Parses and extracts metadata and waveforms from the EKG PDF data files.
+@click.option('-i', '--input', multiple=True, default=['**/*.pdf'])
+@click.option('-o', '--output', default='./output')
+def ekg_routine(input, output):
+  """Parse and extract metadata and waveforms from ECG files.
   """
-  input_dir = os.path.abspath(in_dir)
-  output_dir = os.path.abspath(out_dir)
-  pdfs = glob.glob('{0}/*.pdf'.format(input_dir))
+  pdfs = []
+  for pattern in input:
+    if '.pdf' not in pattern:
+      pattern += '/*.pdf'
+    for path in glob.glob(pattern):
+      pdfs.append(os.path.abspath(path))
+  output_dir = os.path.abspath(output)
+
   total_files_to_process = len(pdfs)
   begin = datetime.datetime.now()
 

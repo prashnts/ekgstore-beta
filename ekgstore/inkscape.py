@@ -14,7 +14,7 @@ def get_args(**kwa):
   for key, value in kwa.items():
     key = re.sub('([A-Z]+)', r'-\1', key).lower()
 
-    if type(value) is str:
+    if value:
       args.append('--{0}={1}'.format(key, value))
     elif value:
       args.append('--{0}'.format(key))
