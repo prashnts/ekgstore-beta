@@ -2,8 +2,8 @@
 # EKGStore
 import os
 
-from ekgstore.parser import Waveform, Metadata
-from ekgstore.logger import logger
+from .parser import Waveform, Metadata
+from .logger import logger
 
 __all__ = ('Waveform', 'Metadata')
 

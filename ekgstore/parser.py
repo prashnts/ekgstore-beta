@@ -24,8 +24,8 @@ import contextlib
 from pyquery import PyQuery as pq
 from codecs import open
 
-from ekgstore import inkscape
-from ekgstore.logger import logger
+from . import inkscape
+from .logger import logger
 
 
 class Parser(object):

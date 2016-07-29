@@ -7,9 +7,9 @@ import time
 import datetime
 
 from tqdm import tqdm
-from ekgstore import logger, __version__, _dir_, inkscape
-from ekgstore.logger import error_log_name, summary_log_name, file_log_name
-from ekgstore.parser import process_stack
+from . import logger, __version__, _dir_, inkscape
+from .logger import error_log_name, summary_log_name, file_log_name
+from .parser import process_stack
 
 
 def process_pdf(file_name, output_dir, *arg, **kwa):
