@@ -78,7 +78,7 @@ def ekg_routine(input, output, no_logging):
   and all subdirectories and write output to directory called "output".
 
   More advanced behaviour is supported by supplying '-i' (or '--input') and
-  '-o' (or '--output') options. Check out the examples below for
+  '-o' (or '--output') options. Check out the examples below for usage.
 
   \b
   Examples:

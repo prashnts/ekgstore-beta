@@ -13,14 +13,16 @@ def get_args(**kwa):
   """Build arguments that are supplied to Inkscape commandline app.
 
   Notes:
+
   - Only keyword arguments are supported.
   - To pass flags, supply them with `=True`.
   - Only "truthy" values are appended.
   - To supply arguments with hyphen, use "camelCase". Examples:
-    + version => --version
-    + withoutGui => --without-gui
-    + withoutGUI => --without-g-u-i (Attention!)
-    + exportPlainSvg => --export-plain-svg
+
+      + version => --version
+      + withoutGui => --without-gui
+      + withoutGUI => --without-g-u-i (Attention!)
+      + exportPlainSvg => --export-plain-svg
   """
   args = ['inkscape']
 
@@ -40,12 +42,12 @@ def passthru(timeout=None, **kwa):
   """Spawn Inkscape subprocess.
 
   Args:
-  - timeout (float, optional): If supplied, the subprocess is killed after
-    the timeout period.
-  - Additional arguments are passed on to `get_args`.
+      timeout (float, optional): If supplied, the subprocess is killed after
+          the timeout period.
+      Additional arguments are passed on to ``get_args``.
 
   Raises:
-  - RuntimeError: For any exception with subprocess.
+      RuntimeError: For any exception with subprocess.
   """
   try:
     return subprocess.check_output(get_args(**kwa), timeout=timeout)
@@ -58,7 +60,7 @@ def passthru(timeout=None, **kwa):
 
 
 def version():
-  """Find the version of inkscape binary"""
+  """Find the version of inkscape binary."""
   out = passthru(version=True)
   vinfo = out.decode()
   assert vinfo.startswith('Inkscape'), 'Unknown Inkscape version.'
@@ -66,7 +68,13 @@ def version():
 
 
 def convert(location, destination, timeout=None):
-  """Convert file at `location` to `destination` with optional `timeout`."""
+  """Convert PDF to SVG.
+
+  Args:
+      location (str): Path of PDF file.
+      destination (str): Path where to write SVG.
+      timeout (Optional[float]): Operation timeout value.
+  """
   return passthru(
       file=location,
       exportPlainSvg=destination,
