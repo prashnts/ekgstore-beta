@@ -92,7 +92,7 @@ class Parser(object):
     """Remove unnecessary path elements from SVG tree.
 
     Since the SVG contained many elements which we do not need (such as grids),
-    we can remove those elements to make parsing convinient.
+    we can remove those elements to make parsing convenient.
     """
     # Remove svg definitions from the tree
     (self.svg
@@ -115,14 +115,14 @@ class Parser(object):
 
   @property
   def svg(self):
-    """Convinience property to obtain the SVG instance."""
+    """Convenience property to obtain the SVG instance."""
     if not hasattr(self, '_svg'):
       self._make_svg_()
     return self._svg
 
   @classmethod
   def process(cls, flname, *arg, **kwa):
-    """Convinience method to process the file and obtain result."""
+    """Convenience method to process the file and obtain result."""
     obj = cls(flname, *arg, **kwa)
     return obj.export()
 
@@ -292,7 +292,7 @@ class Waveform(Parser):
 
 @contextlib.contextmanager
 def supress(*exceptions):
-  """Convinience method to catch exceptions implicitly."""
+  """Convenience method to catch exceptions implicitly."""
   try:
     yield
   except exceptions:
